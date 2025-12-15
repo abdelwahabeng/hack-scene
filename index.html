@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hack Scene</title>
+
+<style>
+body{
+    background:#000;
+    margin:0;
+    font-family:Consolas, monospace;
+    color:#00ffbf;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+}
+
+/* LOADING */
+#loadingScreen{
+    position:absolute;
+    inset:0;
+    background:#000;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    font-size:22px;
+}
+#loadingBar{
+    width:60%;
+    height:10px;
+    border:1px solid #00ffbf;
+    margin-top:15px;
+}
+#loadingFill{
+    height:100%;
+    width:0;
+    background:#00ffbf;
+    animation:load 2s forwards;
+}
+@keyframes load{to{width:100%}}
+
+.layout{
+    display:none;
+    gap:20px;
+    width:95%;
+    max-width:1400px;
+}
+
+/* TERMINAL */
+.terminal-wrapper{
+    width:65%;
+    height:520px;
+    position:relative;
+}
+.terminal{
+    position:absolute;
+    inset:0;
+    border:1px solid #00ffbf55;
+    padding:10px;
+    overflow:hidden;
+    background:#000;
+    z-index:1;
+    font-size:13px;
+}
+#matrixCanvas{
+    position:absolute;
+    inset:0;
+    opacity:.35;
+    z-index:0;
+}
+.t-line{
+    opacity:0;
+    animation:show .2s forwards;
+    margin-bottom:3px;
+}
+@keyframes show{to{opacity:1}}
+
+/* PHONE */
+.phone-block{display:flex;flex-direction:column;align-items:center}
+.phone{
+    width:300px;
+    height:540px;
+    border-radius:30px;
+    border:2px solid #00ffbf88;
+    position:relative;
+    overflow:hidden;
+}
+.phone-inner{
+    position:absolute;
+    inset:30px 10px 10px;
+    font-size:12px;
+}
+.phone-line{
+    opacity:0;
+    animation:show .25s forwards;
+    margin-bottom:4px;
+}
+.hud{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+}
+.hud::before{
+    content:"";
+    position:absolute;
+    width:120px;height:120px;
+    border:1px solid #00ffbf66;
+    border-radius:50%;
+    top:40%;left:50%;
+    transform:translate(-50%,-50%);
+    animation:spin 6s linear infinite;
+}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+.stage{margin-top:10px;opacity:0;transition:.5s}
+.done{font-size:22px;opacity:0;color:#00ffaa;margin-top:10px}
+
+</style>
+</head>
+
+<body>
+
+<div id="loadingScreen">
+    Initializing System…
+    <div id="loadingBar"><div id="loadingFill"></div></div>
+</div>
+
+<div class="layout" id="layout">
+
+    <div class="terminal-wrapper">
+        <canvas id="matrixCanvas"></canvas>
+        <div class="terminal" id="terminal"></div>
+    </div>
+
+    <div class="phone-block">
+        <div class="phone">
+            <div class="phone-inner" id="phone"></div>
+            <div class="hud"></div>
+        </div>
+        <div class="stage" id="stageText">Initializing…</div>
+        <div class="done" id="doneMsg">HACK COMPLETE</div>
+    </div>
+
+</div>
+
+<script>
+/* LOAD */
+setTimeout(()=>{
+    loadingScreen.style.display="none";
+    layout.style.display="flex";
+    startAll();
+},2000);
+
+/* TERMINAL DATA (20s total) */
+const terminalLines=[];
+for(let i=0;i<70;i++){
+    terminalLines.push(
+        "[PROCESS] module_"+i+" :: EXEC OK :: latency "+
+        Math.floor(Math.random()*20+5)+"ms"
+    );
+}
+
+const phoneData=[
+"Connecting device…",
+"Secure channel OK",
+"Decrypting packets…",
+"Access granted",
+"Extracting data…",
+"Transfer complete"
+];
+
+const stages=[
+"Scanning Device…",
+"Decrypting…",
+"Extracting…",
+"Transferring…"
+];
+
+let t=0,p=0,s=0;
+
+/* TERMINAL */
+function startAll(){
+    const int=setInterval(()=>{
+        if(t<terminalLines.length){
+            const l=document.createElement("div");
+            l.className="t-line";
+            l.textContent=terminalLines[t];
+            terminal.appendChild(l);
+            terminal.scrollTop=terminal.scrollHeight;
+
+            if(t%12===0 && p<phoneData.length){
+                const pl=document.createElement("div");
+                pl.className="phone-line";
+                pl.textContent=phoneData[p++];
+                phone.appendChild(pl);
+            }
+            if(t%18===0 && s<stages.length){
+                stageText.textContent=stages[s++];
+                stageText.style.opacity=1;
+            }
+            t++;
+        }else{
+            clearInterval(int);
+            setTimeout(()=>doneMsg.style.opacity=1,2000);
+        }
+    },120); // ≈ 8.5s terminal
+}
+
+/* MATRIX */
+const c=matrixCanvas,ctx=c.getContext("2d");
+function resize(){c.width=terminal.clientWidth;c.height=terminal.clientHeight}
+resize();window.onresize=resize;
+
+const chars="01ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const fs=14,cols=Math.floor(c.width/fs);
+const drops=Array(cols).fill(1);
+
+setInterval(()=>{
+    ctx.fillStyle="rgba(0,0,0,.15)";
+    ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle="#00ffbf";
+    ctx.font=fs+"px monospace";
+    for(let i=0;i<drops.length;i++){
+        const ch=chars[Math.floor(Math.random()*chars.length)];
+        ctx.fillText(ch,i*fs,drops[i]*fs);
+        if(drops[i]*fs>c.height&&Math.random()>0.97)drops[i]=0;
+        drops[i]++;
+    }
+},50);
+</script>
+
+</body>
+</html>
